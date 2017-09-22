@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:padding="5dp">
+
+    <TextView
+        android:id="@+id/tVcontent"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentLeft="true"
+        android:layout_centerVertical="true"
+        android:layout_marginRight="5dp"
+        android:text="내용"
+        android:textColor="#000"
+        android:textSize="24dp" />
+
+    <TextView
+        android:id="@+id/tVdate"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentRight="true"
+        android:layout_centerVertical="true"
+        android:text="날짜"
+        android:textColor="#000"
+        android:textSize="24dp" />
+
+    <TextView
+        android:id="@+id/tVetc"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentLeft="false"
+        android:layout_centerVertical="true"
+        android:layout_marginLeft="5dp"
+        android:layout_marginRight="5dp"
+        android:layout_toLeftOf="@id/tVdate"
+        android:layout_toRightOf="@id/tVcontent"
+        android:text="기타"
+        android:textColor="#000"
+        android:textSize="20dp" />
+
+</RelativeLayout>

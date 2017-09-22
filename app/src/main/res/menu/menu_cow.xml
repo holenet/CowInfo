@@ -1,0 +1,14 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools">
+    <item
+        android:id="@+id/action_cow_modify"
+        android:orderInCategory="100"
+        android:title="개체 정보 수정"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_cow_delete"
+        android:orderInCategory="100"
+        android:title="개체 삭제"
+        app:showAsAction="never" />
+</menu>
