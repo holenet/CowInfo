@@ -1,7 +1,7 @@
 package com.holenet.cowinfo;
 
 import android.content.Context;
-import android.net.Uri;
+import android.content.SharedPreferences;
 import android.util.Log;
 
 import java.io.BufferedReader;
@@ -20,13 +20,115 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLEncoder;
+import java.util.HashMap;
 import java.util.Map;
 
 public class NetworkManager {
     final static int CONNECTION_TIME = 5000;
-    final static String MAIN_DOMAIN = "http://147.46.209.151:6147/";
+    final static String MAIN_DOMAIN = "http://147.46.209.151:7416/";
+    final static String DATABASE_URL = MAIN_DOMAIN+"db/";
+    final static int RESULT_CODE_LOGIN_FAILED = 403;
+    final static String RESULT_STRING_LOGIN_FAILED = "login failed";
 
-    static String get(String url) {
+    static String register(Map<String, String> data) {
+        String url = MAIN_DOMAIN+"accounts/register/";
+        Log.e("Network", "register: "+url);
+
+        StringBuilder output = new StringBuilder();
+        try {
+            String csrftoken = getCsrfToken(url);
+
+            HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
+
+            data.put("csrfmiddlewaretoken", csrftoken);
+            StringBuilder postData = new StringBuilder();
+            for(Map.Entry<String,String> param : data.entrySet()) {
+                if(postData.length()!=0)
+                    postData.append("&");
+                postData.append(URLEncoder.encode(param.getKey(), "UTF-8"));
+                postData.append('=');
+                postData.append(URLEncoder.encode(param.getValue(), "UTF-8"));
+            }
+            byte[] postDataBytes = postData.toString().getBytes("UTF-8");
+
+            conn.setConnectTimeout(CONNECTION_TIME);
+            conn.setDoOutput(true);
+            conn.setRequestMethod("POST");
+            conn.getOutputStream().write(postDataBytes);
+
+            int resCode = conn.getResponseCode();
+            Log.d("response Code", resCode+"");
+
+            if(resCode==HttpURLConnection.HTTP_OK) {
+                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                while(true) {
+                    String line = reader.readLine();
+                    if(line==null)
+                        break;
+                    Log.d("line", line);
+                    output.append(line);
+                }
+                reader.close();
+                conn.disconnect();
+            } else return null;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+
+        return output.toString();
+    }
+
+    static boolean login(String username, String password) {
+        String url = MAIN_DOMAIN+"accounts/login/";
+        Log.e("Network", "login: "+url);
+
+        try {
+            String csrftoken = getCsrfToken(url);
+
+            HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
+
+            Map<String, String> data = new HashMap<>();
+            data.put("username", username);
+            data.put("password", password);
+            data.put("next", "/db/");
+            data.put("csrfmiddlewaretoken", csrftoken);
+
+            StringBuilder postData = new StringBuilder();
+            for(Map.Entry<String,String> param : data.entrySet()) {
+                if(postData.length()!=0)
+                    postData.append("&");
+                postData.append(URLEncoder.encode(param.getKey(), "UTF-8"));
+                postData.append('=');
+                postData.append(URLEncoder.encode(param.getValue(), "UTF-8"));
+            }
+            byte[] postDataBytes = postData.toString().getBytes("UTF-8");
+
+            conn.setConnectTimeout(CONNECTION_TIME);
+            conn.setDoOutput(true);
+            conn.setRequestMethod("POST");
+            conn.getOutputStream().write(postDataBytes);
+
+            int resCode = conn.getResponseCode();
+            Log.d("Network", "login: "+resCode);
+
+            return resCode==HttpURLConnection.HTTP_OK;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    static boolean login(Context context) {
+        SharedPreferences pref = context.getSharedPreferences("settings_login", 0);
+        return login(pref.getString(context.getString(R.string.pref_key_username), ""), pref.getString(context.getString(R.string.pref_key_password), ""));
+    }
+
+    static String get(Context context, String url) {
+        Log.e("Network", "get: "+url);
+        if(!login(context))
+            return RESULT_STRING_LOGIN_FAILED;
+
         StringBuilder output = new StringBuilder();
         try {
             HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
@@ -56,10 +158,13 @@ public class NetworkManager {
         return output.toString();
     }
 
-    static String post(String url, Map<String, String> data) {
+    static String post(Context context, String url, Map<String, String> data) {
+        Log.e("Network", "post: "+url);
+        if(!login(context))
+            return RESULT_STRING_LOGIN_FAILED;
+
         StringBuilder output = new StringBuilder();
         try {
-            CookieHandler.setDefault(new CookieManager(null, CookiePolicy.ACCEPT_ALL));
             String csrftoken = getCsrfToken(url);
 
             HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
@@ -79,7 +184,7 @@ public class NetworkManager {
 
             conn.setConnectTimeout(CONNECTION_TIME);
             conn.setDoOutput(true);
-            conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+//            conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
 //            conn.setRequestProperty("Content-Length", String.valueOf(postDataBytes.length));
             conn.setRequestMethod("POST");
             conn.getOutputStream().write(postDataBytes);
@@ -107,7 +212,11 @@ public class NetworkManager {
         return output.toString();
     }
 
-    static int upload(String url, File file, String fileName) {
+    static int upload(Context context, String url, File file, String fileName) {
+        Log.e("Network", "upload: "+url);
+        if(!login(context))
+            return RESULT_CODE_LOGIN_FAILED;
+
         String charset = "UTF-8";
         String boundary = Long.toHexString(System.currentTimeMillis());
         String CRLF = "\r\n";
@@ -169,12 +278,11 @@ public class NetworkManager {
                 stringBuilder.append(line).append("\n");
             }
             reader.close();
-
+            return resCode;
         } catch(Exception e) {
             e.printStackTrace();
-            resCode = -1;
+            return -1;
         }
-        return resCode;
     }
 
     static int download(String url, String filePath) {
@@ -182,8 +290,8 @@ public class NetworkManager {
     }
 
     // Post data rigth after call this method
-    static private String getCsrfToken(String url) throws IOException {
-        HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
+    static String getCsrfToken(String url) throws IOException {
+        CookieHandler.setDefault(new CookieManager(null, CookiePolicy.ACCEPT_ALL));        HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
         String csrftoken = null;
         String cookies = conn.getHeaderFields().get("Set-Cookie").get(0);
         for(String cookie: cookies.split(";")) {
@@ -192,6 +300,7 @@ public class NetworkManager {
                 csrftoken = cook[1];
             }
         }
+
         conn.disconnect();
         return csrftoken;
     }

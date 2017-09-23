@@ -54,8 +54,6 @@ public class RecodeActivity extends AppCompatActivity {
     View lLcontent;
     View pBloading;
 
-    DatabaseBackupTask backupTask;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -268,33 +266,8 @@ public class RecodeActivity extends AppCompatActivity {
             intent.putExtra("requestCode", REQUEST_COW_ADD);
             startActivityForResult(intent, REQUEST_COW_ADD);
         } else if(id==R.id.action_backup) {
-            final String[] items = new String[]{"기기에 백업", "서버에 백업", "기기에서 복원", "서버에서 복원"};
-            final int[] iconIds = new int[]{R.drawable.ic_backup_black_24dp,
-                                            R.drawable.ic_backup_black_24dp,
-                                            R.drawable.ic_restore_black_24dp,
-                                            R.drawable.ic_restore_black_24dp,
-            };
-            new AlertDialog.Builder(this)
-                    .setIcon(R.drawable.ic_save_black_24dp)
-                    .setTitle("백업/복원")
-                    .setItems(items, new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialog, final int which) {
-                            if(which<2) {
-                                new AlertDialog.Builder(RecodeActivity.this)
-                                        .setTitle(items[which])
-                                        .setIcon(iconIds[which])
-                                        .setMessage(items[which].substring(0,2)+"로 데이터베이스 파일을 "+(which==0?"복사":"업로드")+"하시겠습니까?")
-                                        .setPositiveButton("네", new DialogInterface.OnClickListener() {
-                                            public void onClick(DialogInterface dialog, int whichButton) {
-                                                tryBackup(which);
-                                            }})
-                                        .setNegativeButton("아니오", null).show();
-
-                            }
-                        }
-                    })
-                    .create().show();
+            Intent intent = new Intent(RecodeActivity.this, BackupActivity.class);
+            startActivity(intent);
         }
 
         return super.onOptionsItemSelected(item);
@@ -329,41 +302,6 @@ public class RecodeActivity extends AppCompatActivity {
         }
     }
 
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        // super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if(grantResults.length>0 && grantResults[0]== PackageManager.PERMISSION_GRANTED) {
-            backup(requestCode);
-        } else {
-            Toast.makeText(this, R.string.error_permission, Toast.LENGTH_SHORT).show();
-        }
-    }
-
-    private void tryBackup(int which) {
-        if(ContextCompat.checkSelfPermission(this, android.Manifest.permission.WRITE_EXTERNAL_STORAGE)!= PackageManager.PERMISSION_GRANTED) {
-            Log.e("request", "not granted");
-            Toast.makeText(this, R.string.error_permission, Toast.LENGTH_LONG).show();
-            if(ActivityCompat.shouldShowRequestPermissionRationale(this, android.Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
-                Log.e("request", "??");
-            } else {
-                Log.e("request", "permmm");
-            }
-            ActivityCompat.requestPermissions(this, new String[]{android.Manifest.permission.WRITE_EXTERNAL_STORAGE},which);
-        } else {
-            backup(which);
-        }
-    }
-
-    private void backup(int which) {
-        if(backupTask!=null) {
-            Toast.makeText(RecodeActivity.this, R.string.error_task_exist, Toast.LENGTH_LONG).show();
-            return;
-        }
-        showProgress(true);
-        backupTask = new DatabaseBackupTask(which);
-        backupTask.execute((Void) null);
-    }
-
     private void showProgress(final boolean show) {
         int shortAnimTime = getResources().getInteger(android.R.integer.config_shortAnimTime);
 
@@ -384,42 +322,5 @@ public class RecodeActivity extends AppCompatActivity {
                 pBloading.setVisibility(show ? View.VISIBLE : View.GONE);
             }
         });
-    }
-
-    public class DatabaseBackupTask extends AsyncTask<Void, Void, Boolean> {
-        int which;
-
-        public DatabaseBackupTask(int which) {
-            this.which = which;
-        }
-
-        @Override
-        protected Boolean doInBackground(Void... params) {
-            Log.e("doInBackground", which+"");
-            switch(which) {
-                case 0: return BackupManager.backupToDevice(RecodeActivity.this);
-                case 1: return BackupManager.backupToServer(RecodeActivity.this);
-                default: return false;
-            }
-        }
-
-        @Override
-        protected void onPostExecute(final Boolean result) {
-            backupTask = null;
-            showProgress(false);
-
-            Log.d("result", ""+result);
-            if(result) {
-                Toast.makeText(RecodeActivity.this, R.string.success_backup, Toast.LENGTH_LONG).show();
-            } else {
-                Toast.makeText(RecodeActivity.this, R.string.fail_backup, Toast.LENGTH_LONG).show();
-            }
-        }
-
-        @Override
-        protected void onCancelled() {
-            backupTask = null;
-            showProgress(false);
-        }
     }
 }
