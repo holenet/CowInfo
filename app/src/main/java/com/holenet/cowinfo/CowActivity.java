@@ -56,6 +56,7 @@ public class CowActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_cow);
+
         dbHelper = new DatabaseHelper(this);
 
         Intent intent = getIntent();
@@ -156,6 +157,8 @@ public class CowActivity extends AppCompatActivity {
         tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP,30);
         getSupportActionBar().setDisplayOptions(ActionBar.DISPLAY_SHOW_CUSTOM);
         getSupportActionBar().setCustomView(tv);
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        getSupportActionBar().setDisplayShowHomeEnabled(true);
 
         tVnumber.setText(number);
         if(mnumber==null) {
@@ -242,8 +245,9 @@ public class CowActivity extends AppCompatActivity {
         final int MENU_ID = item.getItemId();
 
         //noinspection SimplifiableIfStatement
-
-        if(MENU_ID==R.id.action_cow_modify) {
+        if(MENU_ID==android.R.id.home) {
+            onBackPressed();
+        } else if(MENU_ID==R.id.action_cow_modify) {
             Intent intent = new Intent(this, CowEditActivity.class);
             intent.putExtra("id", id);
             intent.putExtra("requestCode", REQUEST_COW_MODIFY);

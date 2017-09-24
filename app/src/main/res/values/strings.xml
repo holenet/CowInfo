@@ -8,17 +8,14 @@
     <string name="prompt_password">Password (optional)</string>
     <string name="action_sign_in">Sign in or register</string>
     <string name="action_sign_in_short">Sign in</string>
-    <string name="error_invalid_email">This email address is invalid</string>
-    <string name="error_invalid_password">This password is too short</string>
-    <string name="error_incorrect_password">This password is incorrect</string>
-    <string name="error_field_required">This field is required</string>
+    <string name="error_field_required">이 칸은 반드시 기입해야 합니다.</string>
     <string name="permission_rationale">"Contacts permissions are needed for providing email
         completions."
     </string>
     <string name="title_activity_recode">RecodeActivity</string>
     <string name="section_format">Hello World from section: %1$d</string>
     <string name="error_permission">권한을 허용해주세요</string>
-    <string name="error_task_exist">다른 백업 작업이 끝날 때까지 기다려주세요.</string>
+    <string name="error_task_exist">다른 작업이 끝날 때까지 기다려주세요.</string>
     <string name="success_backup">백업 성공하였습니다.</string>
     <string name="fail_backup">백업 실패하였습니다.</string>
     <string name="error_network">네트워크 상태가 좋지 않습니다. 나중에 다시 시도해주세요.</string>
@@ -26,6 +23,7 @@
     <item name="FRAG_ID" type="id" />
     <string name="title_activity_backup">BackupActivity</string>
 
+    <!--Preference Key-->
     <string name="pref_key_save_password">save_password</string>
     <string name="pref_key_save_username">save_username</string>
     <string name="pref_key_auto_login">auto_login</string>

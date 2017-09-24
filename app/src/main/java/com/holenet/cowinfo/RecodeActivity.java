@@ -39,6 +39,7 @@ public class RecodeActivity extends AppCompatActivity {
     final static int REQUEST_COW_MODIFY = 302;
     final static int REQUEST_RECODE_ADD = 404;
     final static int REQUEST_RECODE_MODIFY = 405;
+    final static int REQUEST_BACKUP = 501;
     final static int MENU_INFO = 1000;
     final static int MENU_MODIFY = 1001;
     final static int MENU_DELETE = 1002;
@@ -155,6 +156,9 @@ public class RecodeActivity extends AppCompatActivity {
                 rdf.refreshList();
                 vPrecode.setCurrentItem(0);
             }
+        } else if(requestCode==REQUEST_BACKUP) {
+            rcf.refreshList();
+            rdf.refreshList();
         }
     }
 
@@ -267,7 +271,7 @@ public class RecodeActivity extends AppCompatActivity {
             startActivityForResult(intent, REQUEST_COW_ADD);
         } else if(id==R.id.action_backup) {
             Intent intent = new Intent(RecodeActivity.this, BackupActivity.class);
-            startActivity(intent);
+            startActivityForResult(intent, REQUEST_BACKUP);
         }
 
         return super.onOptionsItemSelected(item);

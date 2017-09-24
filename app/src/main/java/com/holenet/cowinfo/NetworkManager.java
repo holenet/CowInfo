@@ -36,8 +36,8 @@ public class NetworkManager {
 
         StringBuilder output = new StringBuilder();
         try {
+//            CookieHandler.setDefault(new CookieManager(null, CookiePolicy.ACCEPT_ALL));
             String csrftoken = getCsrfToken(url);
-
             HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
 
             data.put("csrfmiddlewaretoken", csrftoken);
@@ -84,8 +84,8 @@ public class NetworkManager {
         Log.e("Network", "login: "+url);
 
         try {
+//            CookieHandler.setDefault(new CookieManager(null, CookiePolicy.ACCEPT_ALL));
             String csrftoken = getCsrfToken(url);
-
             HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
 
             Map<String, String> data = new HashMap<>();
@@ -93,6 +93,7 @@ public class NetworkManager {
             data.put("password", password);
             data.put("next", "/db/");
             data.put("csrfmiddlewaretoken", csrftoken);
+            Log.e("csrftoken", csrftoken+"");
 
             StringBuilder postData = new StringBuilder();
             for(Map.Entry<String,String> param : data.entrySet()) {
@@ -112,7 +113,22 @@ public class NetworkManager {
             int resCode = conn.getResponseCode();
             Log.d("Network", "login: "+resCode);
 
-            return resCode==HttpURLConnection.HTTP_OK;
+            if(resCode==HttpURLConnection.HTTP_OK) {
+                StringBuilder output = new StringBuilder();
+                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                while(true) {
+                    String line = reader.readLine();
+                    if(line==null)
+                        break;
+                    Log.d("line", line);
+                    output.append(line);
+                }
+                reader.close();
+
+                return Parser.getMetaDataHTML(output.toString(), "view_name")==null;
+            } else {
+                return false;
+            }
         } catch (Exception e) {
             e.printStackTrace();
             return false;
@@ -131,7 +147,9 @@ public class NetworkManager {
 
         StringBuilder output = new StringBuilder();
         try {
+//            CookieHandler.setDefault(new CookieManager(null, CookiePolicy.ACCEPT_ALL));
             HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
+
             conn.setConnectTimeout(CONNECTION_TIME);
             conn.setDoInput(true);
             conn.setRequestMethod("GET");
@@ -149,6 +167,8 @@ public class NetworkManager {
                 }
                 reader.close();
                 conn.disconnect();
+            } else {
+                return String.valueOf(resCode);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -165,8 +185,8 @@ public class NetworkManager {
 
         StringBuilder output = new StringBuilder();
         try {
+//            CookieHandler.setDefault(new CookieManager(null, CookiePolicy.ACCEPT_ALL));
             String csrftoken = getCsrfToken(url);
-
             HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
 
             Log.d("csrftoken", "["+csrftoken+"]");
@@ -203,6 +223,8 @@ public class NetworkManager {
                 }
                 reader.close();
                 conn.disconnect();
+            } else {
+                return String.valueOf(resCode);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -223,11 +245,10 @@ public class NetworkManager {
         int resCode;
 
         try {
-            CookieHandler.setDefault(new CookieManager(null, CookiePolicy.ACCEPT_ALL));
+//            CookieHandler.setDefault(new CookieManager(null, CookiePolicy.ACCEPT_ALL));
             String csrftoken = getCsrfToken(url);
-            Log.e("csrftoken", csrftoken);
-
             URLConnection conn = new URL(url).openConnection();
+
             conn.setDoOutput(true);
             conn.setRequestProperty("Content-Type", "multipart/form-data; boundary="+boundary);
 
@@ -278,6 +299,7 @@ public class NetworkManager {
                 stringBuilder.append(line).append("\n");
             }
             reader.close();
+
             return resCode;
         } catch(Exception e) {
             e.printStackTrace();
@@ -285,15 +307,21 @@ public class NetworkManager {
         }
     }
 
-    static int download(String url, String filePath) {
+    static int download(Context context, String url, File file) {
+        Log.e("Network", "download: "+url);
+        if(!login(context))
+            return RESULT_CODE_LOGIN_FAILED;
+
         return -1;
     }
 
     // Post data rigth after call this method
     static String getCsrfToken(String url) throws IOException {
-        CookieHandler.setDefault(new CookieManager(null, CookiePolicy.ACCEPT_ALL));        HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
+//        CookieHandler.setDefault(new CookieManager(null, CookiePolicy.ACCEPT_ALL));
+        HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
+
         String csrftoken = null;
-        String cookies = conn.getHeaderFields().get("Set-Cookie").get(0);
+        String cookies = conn.getHeaderField("Set-Cookie");
         for(String cookie: cookies.split(";")) {
             String[] cook = cookie.split("=");
             if(cook[0].equals("csrftoken")) {

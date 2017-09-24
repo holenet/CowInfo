@@ -106,8 +106,29 @@ public class Parser {
         return post;
     }
 */
+    static List<DBItem> getDBItemsJSON(String res) {
+        List<DBItem> items = new ArrayList<>();
+        try {
+            JSONArray ja = new JSONArray(res);
+            for(int i=0; i<ja.length(); i++) {
+                JSONObject jo = ja.getJSONObject(i);
+                DBItem db = new DBItem(jo.getString("name"));
+                db.setId(jo.getInt("id"));
+                db.setServer(true);
+                items.add(db);
+            }
+        } catch(Exception e) {
+            e.printStackTrace();
+        }
+        return items;
+    }
 
     private static String[] getDatetime(String res) {
         return new String[] {res.split(" ")[0], res.split(" ")[1].split("\\.")[0]};
+    }
+
+    public static String[] getDatetimeFromName(String name) {
+        String[] times = name.split("\\.")[0].split("_");
+        return new String[] {times[0]+"년 "+times[1]+"월 "+times[2]+"일", times[3]+"시 "+times[4]+"분 "+times[5]+"초"};
     }
 }

@@ -9,6 +9,7 @@ import android.support.design.widget.TextInputLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CheckBox;
@@ -53,6 +54,7 @@ public class LoginActivity extends AppCompatActivity {
         setContentView(R.layout.activity_login);
 
         getSupportActionBar().setTitle("로그인");
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 
         pref = getSharedPreferences("settings_login", 0);
 
@@ -121,6 +123,15 @@ public class LoginActivity extends AppCompatActivity {
         if(pref.getBoolean(getString(R.string.pref_key_auto_login), false))
             attemptLogin();
 
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        final int id = item.getItemId();
+        if(id==android.R.id.home){
+            onBackPressed();
+        }
+        return super.onOptionsItemSelected(item);
     }
 
     @Override

@@ -11,9 +11,6 @@
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <activity android:name=".CowEditActivity" />
-        <activity android:name=".CowActivity" />
-        <activity android:name=".RecodeEditActivity" />
 
         <service
             android:name=".AlarmService"
@@ -30,11 +27,11 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity
-            android:name=".BackupActivity"
-            android:label="@string/title_activity_backup"
-            android:theme="@style/AppTheme.NoActionBar" />
-        <activity android:name=".LoginActivity"></activity>
+        <activity android:name=".CowEditActivity" />
+        <activity android:name=".CowActivity" />
+        <activity android:name=".RecodeEditActivity" />
+        <activity android:name=".BackupActivity"/>
+        <activity android:name=".LoginActivity"/>
     </application>
 
 </manifest>
