@@ -102,7 +102,7 @@ public class BackupActivity extends AppCompatActivity {
                                 items[i] = b;
                             }
                         })
-                        .setPositiveButton("확인", new DialogInterface.OnClickListener() {
+                        .setPositiveButton(R.string.dialog_button_confirm, new DialogInterface.OnClickListener() {
                             @Override
                             public void onClick(DialogInterface dialogInterface, int i) {
                                 if(!items[0] && !items[1]) {
@@ -120,21 +120,21 @@ public class BackupActivity extends AppCompatActivity {
                                 }
                             }
                         })
-                        .setNegativeButton("취소", null)
+                        .setNegativeButton(R.string.dialog_button_cancel, null)
                         .create().show();
             }
         });
 
         new AlertDialog.Builder(this)
                 .setMessage("서버에 접근하기 위하여 로그인하시겠습니까?")
-                .setPositiveButton("네", new DialogInterface.OnClickListener() {
+                .setPositiveButton(R.string.dialog_button_confirm, new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialogInterface, int i) {
                         Intent intent = new Intent(BackupActivity.this, LoginActivity.class);
                         startActivityForResult(intent, REQUEST_LOGIN);
                     }
                 })
-                .setNegativeButton("아니요", new DialogInterface.OnClickListener() {
+                .setNegativeButton(R.string.dialog_button_cancel, new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialogInterface, int i) {
                         refresh();
@@ -144,7 +144,6 @@ public class BackupActivity extends AppCompatActivity {
     }
 
     private void updateProgress(final boolean show) {
-        // TODO: add deleteTask to check exists
         if(!show && (listTask!=null || !transferTasks.isEmpty()))
             return;
 
@@ -214,7 +213,7 @@ public class BackupActivity extends AppCompatActivity {
             new AlertDialog.Builder(this)
                     .setTitle(datetime[0]+" "+datetime[1])
                     .setMessage("선택한 데이터베이스로 복원하시겠습니까?\n현재 데이터베이스가 덮어씌워집니다.")
-                    .setPositiveButton("네", new DialogInterface.OnClickListener() {
+                    .setPositiveButton(R.string.dialog_button_confirm, new DialogInterface.OnClickListener() {
                         @Override
                         public void onClick(DialogInterface dialogInterface, int i) {
                             if(db.isDevice()) {
@@ -223,7 +222,7 @@ public class BackupActivity extends AppCompatActivity {
                                 transfer(SERVER, DEVICE_IN, null, db.getName(), db.getId());
                             }
                         }
-                    }).setNegativeButton("아니오", null)
+                    }).setNegativeButton(R.string.dialog_button_cancel, null)
                     .create().show();
         } else if(id<3) { // copy
             if(id==1) {
@@ -236,13 +235,16 @@ public class BackupActivity extends AppCompatActivity {
             new AlertDialog.Builder(this)
                     .setTitle(datetime[0]+" "+datetime[1])
                     .setMessage("선택한 데이터베이스를 "+(id<=4?"기기":"")+(id==3?", ":"")+(id%2==1?"서버":"")+"에서 삭제하시겠습니까?")
-                    .setPositiveButton("네", new DialogInterface.OnClickListener() {
+                    .setPositiveButton(R.string.dialog_button_confirm, new DialogInterface.OnClickListener() {
                         @Override
                         public void onClick(DialogInterface dialogInterface, int i) {
-                            Toast.makeText(BackupActivity.this, "delete", Toast.LENGTH_SHORT).show();
-                            // TODO: implement DBDeleteTask or Modify DBTransferTask to delete database from device and server
+                            if(db.isDevice()) {
+                                transfer(DEVICE_EX, null, null, db.getName(), 0);
+                            } else {
+                                transfer(SERVER, null, null, db.getName(), db.getId());
+                            }
                         }
-                    }).setNegativeButton("아니오", null)
+                    }).setNegativeButton(R.string.dialog_button_cancel, null)
                     .create().show();
         }
         return true;
@@ -266,9 +268,19 @@ public class BackupActivity extends AppCompatActivity {
         } else if(id==R.id.action_login) {
             requestLogin();
         } else if(id==R.id.action_db_delete) {
+            // TODO: implement multi select mode and delete multiple items
             Toast.makeText(this, "delete", Toast.LENGTH_SHORT).show();
         } else if(id==R.id.action_db_format) {
-            Toast.makeText(this, "format", Toast.LENGTH_SHORT).show();
+            new AlertDialog.Builder(this)
+                    .setMessage("현재 데이터베이스를 초기화하시겠습니까? 초기화 전에 백업을 하는 것을 권장합니다.")
+                    .setPositiveButton(R.string.dialog_button_confirm, new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialogInterface, int i) {
+                            transfer(DEVICE_IN, null, null, null, 0);
+                        }
+                    })
+                    .setNegativeButton(R.string.dialog_button_cancel, null)
+                    .create().show();
         }
         return super.onOptionsItemSelected(item);
     }
@@ -325,9 +337,9 @@ public class BackupActivity extends AppCompatActivity {
         protected String doInBackground(Void... voids) {
             List<DBItem> items = new ArrayList<>();
             File backupDir = new File(Environment.getExternalStorageDirectory()+File.separator+"cowinfo"+File.separator+"database");
-            Log.e("backupDir", backupDir+"/"+backupDir.exists());
+//            Log.e("backupDir", backupDir+"/"+backupDir.exists());
             if(backupDir.exists()) {
-                Log.e("backupDir", backupDir.list()+"");
+//                Log.e("backupDir", backupDir.list()+"");
                 for(String path : backupDir.list()) {
                     if(path.split("\\.").length==2 && path.split("\\.")[0].split("_").length==6) {
                         DBItem db = new DBItem(path);
@@ -420,7 +432,26 @@ public class BackupActivity extends AppCompatActivity {
 
         @Override
         protected Boolean doInBackground(Void... voids) {
-            if(from!=SERVER && to!=SERVER) { // from Device to Device
+            if(to==null) { // delete operation
+                if(from==SERVER) { // delete Server db
+                    String url = NetworkManager.DATABASE_URL+"delete/"+id+"/";
+                    String output = NetworkManager.get(context, url);
+                    if(output==null)
+                        return false;
+                    if(output.equals(NetworkManager.RESULT_STRING_LOGIN_FAILED))
+                        return false;
+                    return true;
+                } else {
+                    File file;
+                    if(from==DEVICE_IN) { // format current db
+                        file = new File(String.valueOf(context.getExternalFilesDir(null))+File.separator+"cows.db");
+                    } else { // delete Device db
+                        file = new File(Environment.getExternalStorageDirectory()+File.separator+"cowinfo"+File.separator+"database"+File.separator+name);
+                    }
+                    return file.delete();
+                }
+            }
+            else if(from!=SERVER && to!=SERVER) { // from Device to Device
                 String inPath = String.valueOf(context.getExternalFilesDir(null))+File.separator+"cows.db";
                 String exPath = Environment.getExternalStorageDirectory()+File.separator+"cowinfo"+File.separator+"database";
 
@@ -488,7 +519,13 @@ public class BackupActivity extends AppCompatActivity {
             updateProgress(false);
 
             if(result) {
-                if(to==DEVICE_IN) {
+                if(to==null) {
+                    if(from==DEVICE_IN) {
+                        Toast.makeText(context, "데이터베이스 삭제에 성공하였습니다.", Toast.LENGTH_SHORT).show();
+                    } else {
+                        Toast.makeText(context, "데이터베이스 초기화에 성공하였습니다.", Toast.LENGTH_SHORT).show();
+                    }
+                } else if(to==DEVICE_IN) {
                     Toast.makeText(context, "복원에 성공하였습니다.", Toast.LENGTH_SHORT).show();
                 } else {
                     Toast.makeText(context, (to==DEVICE_EX?"기기":"서버")+"에 "+(from==DEVICE_IN?"백업":"복사")+" 성공하였습니다.", Toast.LENGTH_SHORT).show();
