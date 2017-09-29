@@ -24,8 +24,11 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AbsListView;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.CheckBox;
+import android.widget.CompoundButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
@@ -53,6 +56,7 @@ import static java.net.HttpURLConnection.HTTP_OK;
 public class BackupActivity extends AppCompatActivity {
     final static int REQUEST_LOGIN = 1234;
 
+    FloatingActionButton fABaddDB;
     ProgressBar pBloading;
     LinearLayout lLcontent;
     ConstraintLayout cLheader;
@@ -84,49 +88,81 @@ public class BackupActivity extends AppCompatActivity {
                 view.showContextMenu();
             }
         });
+        lVdb.setChoiceMode(AbsListView.CHOICE_MODE_MULTIPLE);
         adapter = new DBAdapter(BackupActivity.this, R.layout.item_db, new ArrayList<DBItem>());
         lVdb.setAdapter(adapter);
         registerForContextMenu(lVdb);
 
-        FloatingActionButton fABaddDB = (FloatingActionButton) findViewById(R.id.fABaddDB);
+        fABaddDB = (FloatingActionButton) findViewById(R.id.fABaddDB);
         fABaddDB.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                final String[] itemNames = new String[] {"기기에 백업", "서버에 백업"};
-                final boolean[] items = new boolean[] {false, false};
-                new AlertDialog.Builder(BackupActivity.this)
-                        .setTitle("데이터베이스 백업")
-                        .setMultiChoiceItems(itemNames, items, new DialogInterface.OnMultiChoiceClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialogInterface, int i, boolean b) {
-                                items[i] = b;
-                            }
-                        })
-                        .setPositiveButton(R.string.dialog_button_confirm, new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialogInterface, int i) {
-                                if(!items[0] && !items[1]) {
-                                    Toast.makeText(BackupActivity.this, "백업되지 않았습니다.", Toast.LENGTH_SHORT).show();
-                                } else {
-                                    String time = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss").format(Calendar.getInstance().getTime());
-                                    if(items[0]) {
-                                        transfer(DEVICE_IN, DEVICE_EX, time, null, 0);
-//                                        tryBackupDevice(time);
+                if(multiChoiceMode) {
+                    new AlertDialog.Builder(BackupActivity.this)
+                            .setMessage(adapter.getCheckedCount()+" 개의 데이터베이스를 삭제하시겠습니까?")
+                            .setPositiveButton(R.string.dialog_button_confirm, new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialogInterface, int i) {
+                                    List<TransferInfo> transfers = new ArrayList<>();
+                                    for(DBItem db: adapter.getItems()) {
+                                        if(db.isChecked()) {
+                                            if(db.isDevice()) {
+                                                transfers.add(new TransferInfo(DEVICE_EX, null, null, db.getName(), db.getId()));
+                                            }
+                                            if(db.isServer()) {
+                                                transfers.add(new TransferInfo(SERVER, null, null, db.getName(), db.getId()));
+                                            }
+                                        }
                                     }
-                                    if(items[1]) {
-                                        transfer(DEVICE_IN, SERVER, time, null, 0);
-//                                        tryBackupServer(time);
+                                    transfer(transfers);
+                                }
+                            })
+                            .setNegativeButton(R.string.dialog_button_cancel, null)
+                            .create().show();
+                    changeMode(false);
+                } else {
+                    final String[] itemNames = new String[] {"기기에 백업", "서버에 백업"};
+                    final boolean[] items = new boolean[] {false, false};
+                    new AlertDialog.Builder(BackupActivity.this)
+                            .setTitle("데이터베이스 백업")
+                            .setMultiChoiceItems(itemNames, items, new DialogInterface.OnMultiChoiceClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialogInterface, int i, boolean b) {
+                                    items[i] = b;
+                                }
+                            })
+                            .setPositiveButton(R.string.dialog_button_confirm, new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialogInterface, int i) {
+                                    if(!items[0] && !items[1]) {
+                                        Toast.makeText(BackupActivity.this, "백업되지 않았습니다.", Toast.LENGTH_SHORT).show();
+                                    } else {
+                                        String time = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss").format(Calendar.getInstance().getTime());
+                                        List<TransferInfo> transfers = new ArrayList<>();
+                                        if(items[0]) {
+                                            transfers.add(new TransferInfo(DEVICE_IN, DEVICE_EX, time, null, 0));
+                                        }
+                                        if(items[1]) {
+                                            transfers.add(new TransferInfo(DEVICE_IN, SERVER, time, null, 0));
+                                        }
+                                        transfer(transfers);
                                     }
                                 }
-                            }
-                        })
-                        .setNegativeButton(R.string.dialog_button_cancel, null)
-                        .create().show();
+                            })
+                            .setNegativeButton(R.string.dialog_button_cancel, null)
+                            .create().show();
+                }
             }
         });
 
         new AlertDialog.Builder(this)
                 .setMessage("서버에 접근하기 위하여 로그인하시겠습니까?")
+                .setOnCancelListener(new DialogInterface.OnCancelListener() {
+                    @Override
+                    public void onCancel(DialogInterface dialogInterface) {
+                        refresh();
+                    }
+                })
                 .setPositiveButton(R.string.dialog_button_confirm, new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialogInterface, int i) {
@@ -217,18 +253,18 @@ public class BackupActivity extends AppCompatActivity {
                         @Override
                         public void onClick(DialogInterface dialogInterface, int i) {
                             if(db.isDevice()) {
-                                transfer(DEVICE_EX, DEVICE_IN, null, db.getName(), 0);
+                                transfer(new TransferInfo(DEVICE_EX, DEVICE_IN, null, db.getName(), 0));
                             } else {
-                                transfer(SERVER, DEVICE_IN, null, db.getName(), db.getId());
+                                transfer(new TransferInfo(SERVER, DEVICE_IN, null, db.getName(), db.getId()));
                             }
                         }
                     }).setNegativeButton(R.string.dialog_button_cancel, null)
                     .create().show();
         } else if(id<3) { // copy
             if(id==1) {
-                transfer(SERVER, DEVICE_EX, null, db.getName(), db.getId());
+                transfer(new TransferInfo(SERVER, DEVICE_EX, null, db.getName(), db.getId()));
             } else {
-                transfer(DEVICE_EX, SERVER, null, db.getName(), 0);
+                transfer(new TransferInfo(DEVICE_EX, SERVER, null, db.getName(), 0));
             }
 
         } else if(id<6) { // delete
@@ -239,9 +275,9 @@ public class BackupActivity extends AppCompatActivity {
                         @Override
                         public void onClick(DialogInterface dialogInterface, int i) {
                             if(db.isDevice()) {
-                                transfer(DEVICE_EX, null, null, db.getName(), 0);
+                                transfer(new TransferInfo(DEVICE_EX, null, null, db.getName(), 0));
                             } else {
-                                transfer(SERVER, null, null, db.getName(), db.getId());
+                                transfer(new TransferInfo(SERVER, null, null, db.getName(), db.getId()));
                             }
                         }
                     }).setNegativeButton(R.string.dialog_button_cancel, null)
@@ -268,7 +304,7 @@ public class BackupActivity extends AppCompatActivity {
         } else if(id==R.id.action_login) {
             requestLogin();
         } else if(id==R.id.action_db_delete) {
-            // TODO: implement multi select mode and delete multiple items
+            changeMode(true);
             Toast.makeText(this, "delete", Toast.LENGTH_SHORT).show();
         } else if(id==R.id.action_db_format) {
             new AlertDialog.Builder(this)
@@ -276,7 +312,7 @@ public class BackupActivity extends AppCompatActivity {
                     .setPositiveButton(R.string.dialog_button_confirm, new DialogInterface.OnClickListener() {
                         @Override
                         public void onClick(DialogInterface dialogInterface, int i) {
-                            transfer(DEVICE_IN, null, null, null, 0);
+                            transfer(new TransferInfo(DEVICE_IN, null, null, null, 0));
                         }
                     })
                     .setNegativeButton(R.string.dialog_button_cancel, null)
@@ -306,6 +342,14 @@ public class BackupActivity extends AppCompatActivity {
             }
             refresh();
         }
+    }
+
+    boolean multiChoiceMode;
+    private void changeMode(final boolean multiChoiceMode) {
+        this.multiChoiceMode = multiChoiceMode;
+        cLheader.findViewById(R.id.cBheader).setVisibility(multiChoiceMode ? View.INVISIBLE : View.GONE);
+        fABaddDB.setImageResource(multiChoiceMode ? R.drawable.ic_delete_forever_black_24dp : R.drawable.ic_add_black_24dp);
+        adapter.notifyDataSetChanged();
     }
 
     private boolean requestPermission() {
@@ -397,120 +441,148 @@ public class BackupActivity extends AppCompatActivity {
         DEVICE_IN, DEVICE_EX, SERVER,
     }
 
-    private void transfer(Location from, Location to, String time, String name, int id) {
-        if(from==DEVICE_EX || to==DEVICE_EX) {
-            if(!requestPermission()) {
-                return;
+    private void transfer(TransferInfo transferInfo) {
+        List<TransferInfo> transfers = new ArrayList<>();
+        transfers.add(transferInfo);
+        transfer(transfers);
+    }
+
+    private void transfer(List<TransferInfo> transfers) {
+        for(TransferInfo transferInfo: transfers) {
+            Location from = transferInfo.from;
+            Location to = transferInfo.to;
+            if(from==DEVICE_EX || to==DEVICE_EX) {
+                if(!requestPermission()) {
+                    return;
+                }
             }
-        }
-        if(from==SERVER || to==SERVER) {
-            if(!requestLogin()) {
-                return;
+            if(from==SERVER || to==SERVER) {
+                if(!requestLogin()) {
+                    return;
+                }
             }
         }
 
         updateProgress(true);
-        DBTransferTask transferTask = new DBTransferTask(BackupActivity.this, from, to, time, name, id);
+        DBTransferTask transferTask = new DBTransferTask(BackupActivity.this, transfers);
         transferTasks.add(transferTask);
         transferTask.execute((Void) null);
     }
 
-    private class DBTransferTask extends AsyncTask<Void, Void, Boolean> {
-        Context context;
+    class TransferInfo {
         Location from, to;
         String time, name;
         int id;
 
-        public DBTransferTask(Context context, Location from, Location to, String time, String name, int id) {
-            this.context = context;
+        public TransferInfo(Location from, Location to, String time, String name, int id) {
             this.from = from;
             this.to = to;
             this.time = time;
             this.name = name;
             this.id = id;
         }
+    }
+
+    private class DBTransferTask extends AsyncTask<Void, Void, Boolean> {
+        Context context;
+        List<TransferInfo> transfers;
+
+        public DBTransferTask(Context context, List<TransferInfo> transfers) {
+            this.context = context;
+            this.transfers = transfers;
+        }
 
         @Override
         protected Boolean doInBackground(Void... voids) {
-            if(to==null) { // delete operation
-                if(from==SERVER) { // delete Server db
-                    String url = NetworkManager.DATABASE_URL+"delete/"+id+"/";
-                    String output = NetworkManager.get(context, url);
-                    if(output==null)
-                        return false;
-                    if(output.equals(NetworkManager.RESULT_STRING_LOGIN_FAILED))
-                        return false;
-                    return true;
-                } else {
+            boolean success = true;
+            for(TransferInfo transfer: transfers) {
+                Location from = transfer.from;
+                Location to = transfer.to;
+                String time = transfer.time;
+                String name = transfer.name;
+                int id = transfer.id;
+
+                if(to==null) { // delete operation
+                    if(from==SERVER) { // delete Server db
+                        String url = NetworkManager.DATABASE_URL+"delete/"+id+"/";
+                        String output = NetworkManager.get(context, url);
+                        if(output==null || output.equals(NetworkManager.RESULT_STRING_LOGIN_FAILED))
+                            success = false;
+                    } else {
+                        File file;
+                        if(from==DEVICE_IN) { // format current db
+                            file = new File(String.valueOf(context.getExternalFilesDir(null))+File.separator+"cows.db");
+                        } else { // delete Device db
+                            file = new File(Environment.getExternalStorageDirectory()+File.separator+"cowinfo"+File.separator+"database"+File.separator+name);
+                        }
+                        if(!file.delete())
+                            success = false;
+                    }
+                }
+                else if(from!=SERVER && to!=SERVER) { // from Device to Device
+                    String inPath = String.valueOf(context.getExternalFilesDir(null))+File.separator+"cows.db";
+                    String exPath = Environment.getExternalStorageDirectory()+File.separator+"cowinfo"+File.separator+"database";
+
+                    File exPathFile = new File(exPath);
+                    if(!exPathFile.exists()) {
+                        if(!exPathFile.mkdirs()) {
+                            Log.e("exPathFile.mkdirs Error", "");
+                            success = false;
+                            continue;
+                        }
+                    }
+                    exPath += File.separator+(time!=null?time+".db":name);
+
+                    File fromFile, toFile;
+                    if(from==DEVICE_IN) {
+                        fromFile = new File(inPath);
+                        toFile = new File(exPath);
+                    } else {
+                        fromFile = new File(exPath);
+                        toFile = new File(inPath);
+                    }
+
+                    try {
+                        BufferedInputStream in = new BufferedInputStream(new FileInputStream(fromFile));
+                        BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(toFile));
+                        int data;
+                        while(true) {
+                            data = in.read();
+                            if(data==-1)
+                                break;
+                            out.write(data);
+                        }
+                        in.close();
+                        out.close();
+
+                    } catch(Exception e) {
+                        e.printStackTrace();
+                        success = false;
+                    }
+                } else if(from==SERVER) { // from Server to Device
+                    String url = NetworkManager.DATABASE_URL+"download/"+id+"/";
                     File file;
-                    if(from==DEVICE_IN) { // format current db
+                    if(to==DEVICE_IN) {
                         file = new File(String.valueOf(context.getExternalFilesDir(null))+File.separator+"cows.db");
-                    } else { // delete Device db
+                    } else {
                         file = new File(Environment.getExternalStorageDirectory()+File.separator+"cowinfo"+File.separator+"database"+File.separator+name);
                     }
-                    return file.delete();
+                    if(NetworkManager.download(context, url, file)!=HTTP_OK)
+                        success = false;
+                } else { // from Device to Server
+                    String url = NetworkManager.DATABASE_URL+"upload/";
+                    File file;
+                    if(from==DEVICE_IN) {
+                        file = new File(String.valueOf(context.getExternalFilesDir(null))+File.separator+"cows.db");
+//                        name = time+".db";
+                    } else {
+                        file = new File(Environment.getExternalStorageDirectory()+File.separator+"cowinfo"+File.separator+"database"+File.separator+name);
+                    }
+                    if(NetworkManager.download(context, url, file)!=HTTP_OK)
+                        success = false;
                 }
             }
-            else if(from!=SERVER && to!=SERVER) { // from Device to Device
-                String inPath = String.valueOf(context.getExternalFilesDir(null))+File.separator+"cows.db";
-                String exPath = Environment.getExternalStorageDirectory()+File.separator+"cowinfo"+File.separator+"database";
-
-                File exPathFile = new File(exPath);
-                if(!exPathFile.exists()) {
-                    if(!exPathFile.mkdirs()) {
-                        Log.e("exPathFile.mkdirs Error", "");
-                        return false;
-                    }
-                }
-                exPath += File.separator+(time!=null?time+".db":name);
-
-                File fromFile, toFile;
-                if(from==DEVICE_IN) {
-                    fromFile = new File(inPath);
-                    toFile = new File(exPath);
-                } else {
-                    fromFile = new File(exPath);
-                    toFile = new File(inPath);
-                }
-
-                try {
-                    BufferedInputStream in = new BufferedInputStream(new FileInputStream(fromFile));
-                    BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(toFile));
-                    int data;
-                    while(true) {
-                        data = in.read();
-                        if(data==-1)
-                            break;
-                        out.write(data);
-                    }
-                    in.close();
-                    out.close();
-
-                } catch(Exception e) {
-                    e.printStackTrace();
-                    return false;
-                }
-                return true;
-            } else if(from==SERVER) { // from Server to Device
-                String url = NetworkManager.DATABASE_URL+"download/"+id+"/";
-                File file;
-                if(to==DEVICE_IN) {
-                    file = new File(String.valueOf(context.getExternalFilesDir(null))+File.separator+"cows.db");
-                } else {
-                    file = new File(Environment.getExternalStorageDirectory()+File.separator+"cowinfo"+File.separator+"database"+File.separator+name);
-                }
-                return NetworkManager.download(context, url, file)==HTTP_OK;
-            } else { // from Device to Server
-                String url = NetworkManager.DATABASE_URL+"upload/";
-                File file;
-                if(from==DEVICE_IN) {
-                    file = new File(String.valueOf(context.getExternalFilesDir(null))+File.separator+"cows.db");
-                    name = time+".db";
-                } else {
-                    file = new File(Environment.getExternalStorageDirectory()+File.separator+"cowinfo"+File.separator+"database"+File.separator+name);
-                }
-                return NetworkManager.upload(context, url, file, name)==HTTP_OK;
-            }
+            return success;
         }
 
         @Override
@@ -518,21 +590,32 @@ public class BackupActivity extends AppCompatActivity {
             transferTasks.remove(this);
             updateProgress(false);
 
-            if(result) {
-                if(to==null) {
-                    if(from==DEVICE_IN) {
-                        Toast.makeText(context, "데이터베이스 삭제에 성공하였습니다.", Toast.LENGTH_SHORT).show();
+            if(transfers.size()==1) {
+                Location from = transfers.get(0).from;
+                Location to = transfers.get(0).to;
+                if(result) {
+                    if(to==null) {
+                        if(from==DEVICE_IN) {
+                            Toast.makeText(context, "데이터베이스 초기화에 성공하였습니다.", Toast.LENGTH_SHORT).show();
+                        } else {
+                            Toast.makeText(context, "데이터베이스 삭제에 성공하였습니다.", Toast.LENGTH_SHORT).show();
+                        }
+                    } else if(to==DEVICE_IN) {
+                        Toast.makeText(context, "복원에 성공하였습니다.", Toast.LENGTH_SHORT).show();
                     } else {
-                        Toast.makeText(context, "데이터베이스 초기화에 성공하였습니다.", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(context, (to==DEVICE_EX?"기기":"서버")+"에 "+(from==DEVICE_IN?"백업":"복사")+" 성공하였습니다.", Toast.LENGTH_SHORT).show();
                     }
-                } else if(to==DEVICE_IN) {
-                    Toast.makeText(context, "복원에 성공하였습니다.", Toast.LENGTH_SHORT).show();
+                    refresh();
                 } else {
-                    Toast.makeText(context, (to==DEVICE_EX?"기기":"서버")+"에 "+(from==DEVICE_IN?"백업":"복사")+" 성공하였습니다.", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(context, "실패하였습니다. 다시 시도해주세요.", Toast.LENGTH_SHORT).show();
                 }
-                refresh();
             } else {
-                Toast.makeText(context, "실패하였습니다. 다시 시도해주세요.", Toast.LENGTH_SHORT).show();
+                if(result) {
+                    Toast.makeText(context, "성공하였습니다.", Toast.LENGTH_SHORT).show();
+                    refresh();
+                } else {
+                    Toast.makeText(context, "에러가 발생하였습니다.", Toast.LENGTH_SHORT).show();
+                }
             }
         }
 
@@ -559,12 +642,12 @@ public class BackupActivity extends AppCompatActivity {
                 v = ((LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE)).inflate(R.layout.item_db, null);
             }
 
-            DBItem db = items.get(position);
+            final DBItem db = items.get(position);
             if(db!=null) {
                 TextView tVname = (TextView) v.findViewById(R.id.tVname);
                 if(tVname!=null) {
                     String[] datetime = Parser.getDatetimeFromName(db.getName());
-                    tVname.setText(datetime[0]+" "+datetime[1]);
+                    tVname.setText(datetime[0]+"\n"+datetime[1]);
                 }
                 ImageView iVdevice = (ImageView) v.findViewById(R.id.iVdevice);
                 if(iVdevice!=null)
@@ -572,6 +655,18 @@ public class BackupActivity extends AppCompatActivity {
                 ImageView iVserver = (ImageView) v.findViewById(R.id.iVserver);
                 if(iVserver!=null)
                     iVserver.setVisibility(db.isServer() ? View.VISIBLE : View.INVISIBLE);
+                CheckBox cBcheck = (CheckBox) v.findViewById(R.id.cBcheck);
+                if(cBcheck!=null) {
+                    cBcheck.setVisibility(multiChoiceMode ? View.VISIBLE : View.GONE);
+                    cBcheck.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+                        @Override
+                        public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
+                            Log.e("onCheckedChanged", db+"  "+b);
+                            db.setChecked(b);
+                        }
+                    });
+                    cBcheck.setChecked(db.isChecked());
+                }
             }
 
             return v;
@@ -592,6 +687,20 @@ public class BackupActivity extends AppCompatActivity {
             for(int i = 0; i<items.size(); i++) {
                 this.items.add(items.get(i));
             }
+        }
+
+        public List<DBItem> getItems() {
+            return items;
+        }
+
+        public int getCheckedCount() {
+            int cnt = 0;
+            for(DBItem db: items) {
+                if(db.isChecked()) {
+                    cnt++;
+                }
+            }
+            return cnt;
         }
     }
 }

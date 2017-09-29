@@ -29,4 +29,8 @@
     <string name="pref_key_auto_login">auto_login</string>
     <string name="pref_key_username">username</string>
     <string name="pref_key_password">password</string>
+
+    <!--Dialog button-->
+    <string name="dialog_button_confirm">확인</string>
+    <string name="dialog_button_cancel">취소</string>
 </resources>
