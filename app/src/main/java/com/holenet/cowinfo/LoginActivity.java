@@ -19,6 +19,9 @@ import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.Toast;
 
+import java.net.CookieHandler;
+import java.net.CookieManager;
+import java.net.CookiePolicy;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -52,6 +55,8 @@ public class LoginActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
+
+        CookieHandler.setDefault(new CookieManager(null, CookiePolicy.ACCEPT_ALL));
 
         getSupportActionBar().setTitle("로그인");
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);

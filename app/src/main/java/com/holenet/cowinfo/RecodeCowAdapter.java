@@ -1,6 +1,7 @@
 package com.holenet.cowinfo;
 
 import android.content.Context;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -114,6 +115,10 @@ public class RecodeCowAdapter extends BaseExpandableListAdapter {
     @Override
     public boolean isChildSelectable(int groupPosition, int childPosition) {
         return true;
+    }
+
+    public int getCount() {
+        return items.size();
     }
 
     public static class Parent {

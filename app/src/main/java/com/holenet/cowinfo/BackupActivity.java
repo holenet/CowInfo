@@ -304,8 +304,11 @@ public class BackupActivity extends AppCompatActivity {
         } else if(id==R.id.action_login) {
             requestLogin();
         } else if(id==R.id.action_db_delete) {
-            changeMode(true);
-            Toast.makeText(this, "delete", Toast.LENGTH_SHORT).show();
+            if(multiChoiceMode) {
+                changeMode(false);
+            } else {
+                changeMode(true);
+            }
         } else if(id==R.id.action_db_format) {
             new AlertDialog.Builder(this)
                     .setMessage("현재 데이터베이스를 초기화하시겠습니까? 초기화 전에 백업을 하는 것을 권장합니다.")
@@ -319,6 +322,15 @@ public class BackupActivity extends AppCompatActivity {
                     .create().show();
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public void onBackPressed() {
+        if(multiChoiceMode) {
+            changeMode(false);
+        } else {
+            super.onBackPressed();
+        }
     }
 
     @Override
@@ -349,6 +361,7 @@ public class BackupActivity extends AppCompatActivity {
         this.multiChoiceMode = multiChoiceMode;
         cLheader.findViewById(R.id.cBheader).setVisibility(multiChoiceMode ? View.INVISIBLE : View.GONE);
         fABaddDB.setImageResource(multiChoiceMode ? R.drawable.ic_delete_forever_black_24dp : R.drawable.ic_add_black_24dp);
+        menu.findItem(R.id.action_db_delete).setTitle(multiChoiceMode ? "취소" : "삭제");
         adapter.notifyDataSetChanged();
     }
 
@@ -578,7 +591,7 @@ public class BackupActivity extends AppCompatActivity {
                     } else {
                         file = new File(Environment.getExternalStorageDirectory()+File.separator+"cowinfo"+File.separator+"database"+File.separator+name);
                     }
-                    if(NetworkManager.download(context, url, file)!=HTTP_OK)
+                    if(NetworkManager.upload(context, url, file, time+".db")!=HTTP_OK)
                         success = false;
                 }
             }

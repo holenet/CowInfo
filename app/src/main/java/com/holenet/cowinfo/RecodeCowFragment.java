@@ -66,10 +66,10 @@ public class RecodeCowFragment extends Fragment {
         return v;
     }
 
-    private void refresh() {
+    protected void refresh() {
         refreshList();
         ((RecodeActivity)getActivity()).rdf.refreshList();
-        ((RecodeActivity)getActivity()).getSupportActionBar().setTitle("전체 이력 목록 : "+eLVrecode.getCount()+" 마리");
+        ((RecodeActivity)getActivity()).getSupportActionBar().setTitle("전체 이력 목록 : "+adapter.getCount()+" 마리");
     }
     protected void refreshList() {
         if(!created)

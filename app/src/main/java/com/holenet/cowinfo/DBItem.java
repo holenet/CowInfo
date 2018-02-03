@@ -4,6 +4,7 @@ public class DBItem {
     private int id;
     private String name;
     private boolean device, server;
+    private boolean checked;
 
     public DBItem(String name) {
         this.name = name;
@@ -39,6 +40,14 @@ public class DBItem {
 
     public void setServer(boolean server) {
         this.server = server;
+    }
+
+    public boolean isChecked() {
+        return checked;
+    }
+
+    public void setChecked(boolean checked) {
+        this.checked = checked;
     }
 
     public void addProperty(DBItem db) {

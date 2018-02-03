@@ -47,7 +47,7 @@ public class RecodeAdapter extends ArrayAdapter<RecodeAdapter.Item> {
             TextView tVetc = (TextView) v.findViewById(R.id.tVetc);
             TextView tVdate = (TextView) v.findViewById(R.id.tVdate);
 
-            if(item.getContent()!="기타")
+            if(!item.getContent().equals("기타"))
                 tVcontent.setText(item.getContent());
             tVetc.setText(item.getEtc());
             int[] date = item.getDate();

@@ -6,19 +6,13 @@ import android.app.ActivityManager;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.content.pm.PackageManager;
-import android.os.AsyncTask;
-import android.support.annotation.NonNull;
-import android.support.v4.app.ActivityCompat;
-import android.support.v4.content.ContextCompat;
-import android.support.v7.app.AlertDialog;
-import android.support.v7.app.AppCompatActivity;
+import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentPagerAdapter;
 import android.support.v4.view.ViewPager;
-import android.os.Bundle;
-import android.util.Log;
+import android.support.v7.app.AlertDialog;
+import android.support.v7.app.AppCompatActivity;
 import android.view.ContextMenu;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -152,13 +146,15 @@ public class RecodeActivity extends AppCompatActivity {
         super.onActivityResult(requestCode, resultCode, data);
         if(requestCode==REQUEST_COW_ADD || requestCode==REQUEST_COW_INFO) {
             if(resultCode==RESULT_OK) {
-                rcf.refreshList();
-                rdf.refreshList();
+                rcf.refresh();
+//                rdf.refreshList();
                 vPrecode.setCurrentItem(0);
+//                getSupportActionBar().setTitle("전체 이력 목록 : "+rcf.adapter.getCount()+" 마리");
             }
         } else if(requestCode==REQUEST_BACKUP) {
-            rcf.refreshList();
-            rdf.refreshList();
+            rcf.refresh();
+//            rdf.refreshList();
+//            getSupportActionBar().setTitle("전체 이력 목록 : "+rcf.adapter.getCount()+" 마리");
         }
     }
 

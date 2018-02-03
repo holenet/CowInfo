@@ -71,7 +71,6 @@ public class RecodeDateFragment extends Fragment {
     private void refresh() {
         refreshList();
         ((RecodeActivity)getActivity()).rcf.refreshList();
-        ((RecodeActivity)getActivity()).getSupportActionBar().setTitle("전체 이력 목록 : "+eLVrecode.getCount()+" 마리");
     }
     protected void refreshList() {
         if(!created)
